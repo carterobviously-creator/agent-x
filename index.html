@@ -193,19 +193,26 @@
             let retries = 5;
             for (let i = 0; i < retries; i++) {
                 try {
-                    const resp = await fetch('https://text.pollinations.ai/openai', {
+                    // Refined endpoint with cache-busting seed
+                    const seed = Math.floor(Math.random() * 9999999);
+                    const url = `https://text.pollinations.ai/openai?seed=${seed}`;
+                    
+                    const resp = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
+                    
                     if (resp.ok) return await resp.json();
-                    if (resp.status === 429) {
-                        const sleep = 30000 + (i * 15000);
-                        writeLog(`${label}: 429 Limit. Cooling down for ${sleep/1000}s...`, "text-amber-500 font-bold");
+                    
+                    if (resp.status === 429 || resp.status >= 500) {
+                        const sleep = 25000 + (i * 15000); // Brute force aggressive retry logic
+                        writeLog(`${label}: Server Busy (${resp.status}). Retrying in ${sleep/1000}s...`, "text-amber-500 font-bold");
                         await new Promise(r => setTimeout(r, sleep));
                     }
                 } catch (e) {
-                    await new Promise(r => setTimeout(r, 5000));
+                    writeLog(`${label}: Connection error. Retrying...`, "text-red-400");
+                    await new Promise(r => setTimeout(r, 10000));
                 }
             }
             return null;
@@ -257,24 +264,23 @@
                     if (thoughtResult) {
                         document.getElementById(`thought-${unit.id}`).innerText = thoughtResult.choices[0].message.content;
                     }
-                    // Stagger brainstorming to avoid initial burst block
                     await new Promise(r => setTimeout(r, 2000));
                 }
                 writeLog("NET 4.3: Strategy locked. Proceeding to code generation.", "text-emerald-400");
-                await new Promise(r => setTimeout(r, 10000));
+                await new Promise(r => setTimeout(r, 5000));
             }
 
             // Phase 2: Code Generation
             const results = [];
             for (let i = 0; i < activeUnits.length; i++) {
                 if (i > 0) {
-                    const delay = 30000;
+                    const delay = 35000; // Increased delay for stability
                     writeLog(`COOLDOWN: Resetting connection channel (${delay/1000}s)...`, "text-slate-600 italic");
                     await new Promise(r => setTimeout(r, delay));
                 }
 
                 const unit = activeUnits[i];
-                writeLog(`IGNITING: Unit-${unit.id} (${unit.name})...`, "text-slate-300");
+                writeLog(currentMode === "net43" ? `NET-EXECUTION: Unit-${unit.id} (${unit.name}) is generating...` : `IGNITING: Unit-${unit.id} (${unit.name})...`, "text-slate-300");
                 const res = await spawnAgent(unit, prompt);
                 if (res) results.push(res);
             }
@@ -312,14 +318,13 @@
                     { role: 'system', content: `IDENTITY: ${unit.persona}. Output ONLY the complete source code for a single HTML file. No text explanation.` },
                     { role: 'user', content: `Project: ${prompt}` }
                 ],
-                model: 'openai',
-                seed: Math.random() * 100000
+                model: 'openai'
             }, `UNIT-${unit.id}`);
 
             const display = document.getElementById(`agent-text-${unit.id}`);
             const led = document.getElementById(`led-${unit.id}`);
 
-            if (result) {
+            if (result && result.choices) {
                 const code = result.choices[0].message.content.replace(/```[a-z]*\n/gi, "").replace(/```/g, "").trim();
                 display.innerText = code;
                 display.className = "text-[10px] text-slate-300 font-mono italic";
