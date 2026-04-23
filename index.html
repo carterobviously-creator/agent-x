@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Pollinations AI Fleet Forge v3.4</title>
+    <title>Pollinations AI Fleet Forge v4.3 [NET]</title>
     <hta:application 
         id="pollinFleet"
         applicationname="PollinFleet"
@@ -15,7 +15,7 @@
     >
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap');
         
         body { 
             background-color: #020617; 
@@ -23,186 +23,132 @@
             font-family: 'Segoe UI', system-ui, sans-serif;
             background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #020617 70%);
             min-height: 100vh;
+            overflow-x: hidden;
         }
 
         .glass-panel {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(51, 65, 85, 0.5);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(51, 65, 85, 0.4);
         }
 
         .agent-card { 
-            background: rgba(30, 41, 59, 0.4); 
+            background: rgba(30, 41, 59, 0.3); 
+            border: 1px solid rgba(71, 85, 105, 0.2);
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .mode-btn {
             border: 1px solid rgba(71, 85, 105, 0.3);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.2s ease;
+        }
+        .mode-btn.active {
+            background: #3b82f6;
+            border-color: #60a5fa;
+            color: white;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
         }
 
-        .agent-card:hover {
-            border-color: rgba(59, 130, 246, 0.5);
-            transform: translateY(-2px);
-            background: rgba(30, 41, 59, 0.6);
-        }
-
-        .winner-card { 
-            border-color: #f59e0b !important; 
-            box-shadow: 0 0 30px rgba(245, 158, 11, 0.15);
-            background: rgba(45, 34, 15, 0.4) !important;
-        }
-
-        .log-entry { 
-            border-left: 2px solid #1e293b; 
-            padding-left: 10px; 
-            margin-bottom: 6px; 
-            font-size: 11px;
+        .thought-bubble {
+            background: rgba(15, 23, 42, 0.9);
+            border-left: 3px solid #3b82f6;
             font-family: 'Fira Code', monospace;
         }
 
-        .verdict-box { 
-            background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
-            border: 1px solid #4338ca;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-        }
+        .code-view { font-family: 'Fira Code', monospace; }
 
-        .code-view {
-            font-family: 'Fira Code', monospace;
-            scrollbar-width: thin;
-            scrollbar-color: #334155 transparent;
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
         }
+        .status-led { width: 10px; height: 10px; border-radius: 50%; }
+        .led-active { background: #3b82f6; animation: pulse-glow 2s infinite; }
 
-        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-
-        .glow-blue { box-shadow: 0 0 10px #3b82f6; }
-        .glow-amber { box-shadow: 0 0 10px #f59e0b; }
-        .glow-emerald { box-shadow: 0 0 10px #10b981; }
-
-        @keyframes scanline {
-            0% { transform: translateY(-100%); }
-            100% { transform: translateY(100%); }
-        }
-        .scanning::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.1), transparent);
-            animation: scanline 3s linear infinite;
-            pointer-events: none;
-        }
     </style>
-    
-    <script>
-        window.deployForge = function() { if(window._run) window._run(); };
-        window.browseFolder = function() { if(window._browse) window._browse(); };
-    </script>
 </head>
 <body class="p-6">
-    <div class="max-w-[1600px] mx-auto">
+    <div class="max-w-[1700px] mx-auto">
         <!-- Header -->
-        <div class="flex justify-between items-end mb-8 border-b border-slate-800/60 pb-6">
+        <div class="flex justify-between items-center mb-10 border-b border-slate-800/60 pb-8">
             <div>
-                <h1 class="text-4xl font-black text-white tracking-tighter italic">
-                    NEURAL<span class="text-blue-500">FORGE</span>
-                    <span class="text-xs not-italic font-mono ml-2 text-slate-500">v3.4 [PROTOTYPE]</span>
+                <h1 class="text-5xl font-black text-white tracking-tighter italic uppercase">
+                    Neural<span class="text-blue-500">Forge</span>
+                    <span class="text-xs not-italic font-mono ml-4 text-blue-400 bg-blue-950/50 px-3 py-1 rounded border border-blue-800">NET 4.3</span>
                 </h1>
-                <p class="text-slate-400 text-[10px] uppercase tracking-[0.3em] font-bold mt-1">Multi-Agent Collaborative Synthesis Engine</p>
+                <p class="text-slate-500 text-[10px] uppercase tracking-[0.4em] font-bold mt-2">Multi-Agent Collaborative Coding Engine</p>
             </div>
-            <div class="text-right">
-                <div id="connectionStatus" class="text-[10px] font-mono text-blue-400">CORE STATUS: OPTIMAL</div>
-                <div class="text-[9px] text-slate-600 font-mono">LATENCY: --ms | MODE: AGENT-DEBATE</div>
+            <div id="globalStatus" class="text-right font-mono text-[11px] text-slate-500">
+                STABILITY: <span class="text-emerald-400">OPTIMAL</span><br>
+                ENDPOINT: <span class="text-blue-400">OPENAI (BRUTE)</span>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Sidebar Controls -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <!-- Left Controls -->
             <div class="lg:col-span-3 space-y-6">
-                <div class="glass-panel p-6 rounded-2xl">
-                    <h2 class="text-xs font-black text-blue-400 mb-6 uppercase tracking-widest flex items-center gap-2">
-                        <span class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
-                        Command Center
-                    </h2>
+                <div class="glass-panel p-6 rounded-3xl">
+                    <h2 class="text-xs font-black text-slate-400 mb-6 uppercase tracking-widest">Neural Mode</h2>
                     
+                    <div class="grid grid-cols-2 gap-3 mb-8" id="modeSelector">
+                        <button onclick="setMode('auto')" id="mode-auto" class="mode-btn active p-3 rounded-xl text-[10px] font-black uppercase">Auto</button>
+                        <button onclick="setMode('fast')" id="mode-fast" class="mode-btn p-3 rounded-xl text-[10px] font-black uppercase">Fast</button>
+                        <button onclick="setMode('deepx')" id="mode-deepx" class="mode-btn p-3 rounded-xl text-[10px] font-black uppercase">DeepX</button>
+                        <button onclick="setMode('expert')" id="mode-expert" class="mode-btn p-3 rounded-xl text-[10px] font-black uppercase">Expert</button>
+                        <button onclick="setMode('net43')" id="mode-net43" class="mode-btn p-3 rounded-xl text-[10px] font-black uppercase col-span-2 border-blue-500/50 text-blue-400">NET 4.3 (Best)</button>
+                    </div>
+
                     <div class="space-y-6">
-                        <!-- Disk Link -->
                         <div>
-                            <label class="block text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-tighter">I/O Target Configuration</label>
-                            <div class="flex items-center gap-3 mb-3 group cursor-pointer" onclick="document.getElementById('autoDownload').click()">
-                                <input type="checkbox" id="autoDownload" class="w-4 h-4 rounded bg-slate-900 border-slate-700 checked:bg-blue-600 transition-all" checked>
-                                <label for="autoDownload" class="text-xs text-slate-300 group-hover:text-white transition-colors cursor-pointer">Auto-Export Winners</label>
-                            </div>
-                            <div class="flex gap-2">
-                                <input type="text" id="folderPath" readonly placeholder="Link folder for direct disk I/O..."
-                                    class="flex-1 bg-slate-950/50 border border-slate-800 rounded-lg p-2 text-[10px] text-slate-400 italic truncate outline-none">
-                                <button onclick="window.browseFolder()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 rounded-lg text-[10px] font-bold transition-colors">LINK</button>
-                            </div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-tighter">Objective Parameters</label>
+                            <textarea id="promptInput" rows="8" 
+                                class="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-sm text-slate-200 focus:border-blue-500 outline-none resize-none font-mono"
+                                placeholder="Describe the application..."></textarea>
                         </div>
 
-                        <!-- Settings -->
-                        <div>
-                            <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-3 uppercase">
-                                <span>Agent Clusters</span>
-                                <span id="countDisplay" class="text-blue-400">3 UNITS</span>
-                            </div>
-                            <input type="range" id="agentCount" min="2" max="5" value="3" 
-                                class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                oninput="document.getElementById('countDisplay').innerText = this.value + ' UNITS'">
-                        </div>
-
-                        <!-- Prompt -->
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-500 mb-3 uppercase">Neural Objective (Prompt)</label>
-                            <textarea id="promptInput" rows="7" 
-                                class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all resize-none font-mono"
-                                placeholder="Define the build objective..."></textarea>
-                        </div>
-
-                        <button onclick="window.deployForge()" 
-                            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-blue-900/40 text-xs uppercase tracking-widest">
-                            Ignite Neural Forge
+                        <button id="mainDeployBtn" onclick="window.deployForge()" 
+                            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-5 rounded-2xl transition-all text-xs uppercase tracking-widest shadow-xl shadow-blue-900/30">
+                            Ignite Neural Net
                         </button>
                     </div>
                 </div>
 
-                <!-- System Logs -->
-                <div class="glass-panel p-4 rounded-2xl">
-                    <h3 class="text-[9px] font-bold text-slate-500 uppercase mb-3 tracking-widest">Live Telemetry</h3>
-                    <div id="systemLog" class="h-64 overflow-y-auto pr-2">
-                        <div class="log-entry text-blue-400">System Ready. Awaiting instructions.</div>
+                <div class="glass-panel p-5 rounded-3xl">
+                    <h3 class="text-[10px] font-bold text-slate-500 uppercase mb-4 tracking-widest">Thought Stream</h3>
+                    <div id="systemLog" class="h-[350px] overflow-y-auto pr-2 space-y-3">
+                        <div class="log-entry text-blue-400 text-[11px] font-mono italic">Waiting for command...</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Main Stage -->
-            <div class="lg:col-span-9 space-y-6">
-                <!-- Verdict Section (Winner UI) -->
-                <div id="verdictSection" class="hidden verdict-box p-6 rounded-3xl overflow-hidden relative">
-                    <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                        <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3.45L19.15 19H4.85L12 5.45zM11 16h2v2h-2v-2zm0-7h2v5h-2V9z"/></svg>
-                    </div>
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-center mb-4">
-                            <div class="flex items-center gap-3">
-                                <span class="flex h-3 w-3 bg-amber-500 rounded-full glow-amber"></span>
-                                <span class="text-amber-500 font-black text-sm uppercase tracking-[0.2em]">Synthesis Winner</span>
-                            </div>
-                            <span id="winningUnitLabel" class="bg-amber-500 text-black text-[10px] px-3 py-1 rounded-full font-black shadow-lg">UNIT-001</span>
-                        </div>
-                        <p id="verdictText" class="text-slate-200 text-sm mb-6 leading-relaxed max-w-3xl italic font-light"></p>
-                        <div class="flex gap-4">
-                            <button id="downloadWinnerBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] px-6 py-2.5 rounded-xl font-black transition-all shadow-lg shadow-emerald-900/20 uppercase tracking-wider">
-                                Export Source Code
-                            </button>
-                        </div>
-                    </div>
+            <!-- Main Display -->
+            <div class="lg:col-span-9 space-y-8">
+                <!-- Brainstorming View (Only for NET 4.3) -->
+                <div id="brainstormingArea" class="hidden glass-panel p-8 rounded-[2rem] border-blue-500/20">
+                    <h3 class="text-blue-400 font-black text-xs uppercase tracking-widest mb-6">Agent Collaboration Phase</h3>
+                    <div id="thoughtGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                 </div>
 
-                <!-- Contender Grid -->
+                <!-- Results Section -->
+                <div id="verdictSection" class="hidden glass-panel border-amber-500/40 p-8 rounded-[2rem] relative overflow-hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="flex items-center gap-4">
+                            <span class="text-amber-500 font-black text-sm uppercase tracking-[0.2em]">Validated Master Build</span>
+                            <span id="winningUnitLabel" class="bg-amber-500 text-black text-[10px] px-4 py-1.5 rounded-full font-black uppercase">UNIT-001</span>
+                        </div>
+                        <button id="downloadWinnerBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] px-8 py-3 rounded-2xl font-black uppercase transition-all shadow-lg shadow-emerald-900/20">
+                            Download Source
+                        </button>
+                    </div>
+                    <p id="verdictText" class="text-slate-300 text-sm leading-relaxed mb-0 italic border-l-2 border-slate-700 pl-4"></p>
+                </div>
+
                 <div id="fleetDisplay" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
                 
-                <!-- Placeholder -->
-                <div id="emptyState" class="flex flex-col items-center justify-center h-[600px] border-2 border-dashed border-slate-800/50 rounded-[2.5rem] text-slate-700">
-                    <div class="w-20 h-20 mb-6 opacity-10 bg-blue-500 rounded-full blur-3xl"></div>
-                    <p class="text-sm font-bold uppercase tracking-widest opacity-30">Neutral Forge Standby</p>
+                <div id="emptyState" class="flex flex-col items-center justify-center h-[500px] border-2 border-dashed border-slate-800/40 rounded-[3rem]">
+                    <div class="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-6 opacity-20"></div>
+                    <p class="text-xs font-bold uppercase tracking-[0.5em] text-slate-700">Cluster Idle</p>
                 </div>
             </div>
         </div>
@@ -212,212 +158,219 @@
         const log = document.getElementById('systemLog');
         const fleetDisplay = document.getElementById('fleetDisplay');
         const emptyState = document.getElementById('emptyState');
-        const agentCountInput = document.getElementById('agentCount');
         const verdictSection = document.getElementById('verdictSection');
+        const mainDeployBtn = document.getElementById('mainDeployBtn');
+        const thoughtGrid = document.getElementById('thoughtGrid');
+        const brainstormingArea = document.getElementById('brainstormingArea');
         
         let winningCode = "";
-        let winningExt = "txt";
+        let currentMode = "auto";
+        let isRunning = false;
+
+        const personalities = [
+            { id: 1, name: "ARCHITECT", persona: "Logic/HTML structure expert.", focus: "structural integrity" },
+            { id: 2, name: "HACKER", persona: "Advanced JS logic & API expert.", focus: "dynamic functionality" },
+            { id: 3, name: "ARTIST", persona: "CSS/UI animation & visual expert.", focus: "aesthetic excellence" },
+            { id: 4, name: "ENGINEER", persona: "Security & clean code expert.", focus: "performance optimization" },
+            { id: 5, name: "ANALYST", persona: "UX/UI flow & navigation expert.", focus: "user experience" },
+            { id: 6, name: "MASTER", persona: "Full-stack synthesis expert.", focus: "complete integration" }
+        ];
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`mode-${mode}`).classList.add('active');
+        }
 
         function writeLog(msg, color = "text-slate-500") {
             const div = document.createElement('div');
-            div.className = `log-entry ${color}`;
+            div.className = `log-entry ${color} border-l-2 border-slate-800 pl-3 py-1 font-mono text-[10px]`;
             div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
             log.prepend(div);
         }
 
-        const personalities = [
-            "Architect: Semantic HTML5, structured CSS, focus on core architecture.",
-            "Hacker: Ultra-fast loading, clever CSS tricks, minified logic.",
-            "Artist: High-end aesthetics, glassmorphism, fluid animations.",
-            "Engineer: Scalable logic, standard patterns, error resilience.",
-            "Minimalist: Pure vanilla code, zero bloat, high readability."
-        ];
-
-        function cleanCode(raw) {
-            let code = raw.replace(/^```[a-z]*\n/i, "");
-            code = code.replace(/\n```$/, "");
-            return code.trim();
-        }
-
-        window._run = async () => {
-            const prompt = document.getElementById('promptInput').value.trim();
-            if (!prompt) return writeLog("CRITICAL: No neural objective defined.", "text-red-400");
-
-            fleetDisplay.innerHTML = '';
-            emptyState.classList.add('hidden');
-            verdictSection.classList.add('hidden');
-            
-            const count = parseInt(agentCountInput.value);
-            writeLog(`Igniting Neural Forge: Deploying ${count} agent clusters.`, "text-blue-400");
-
-            const promises = [];
-            for (let i = 0; i < count; i++) {
-                promises.push(spawnAgent(i + 1, prompt, personalities[i % personalities.length]));
-            }
-
-            const results = await Promise.all(promises);
-            const successfulResults = results.filter(r => r !== null);
-
-            if (successfulResults.length > 0) {
-                runJudge(prompt, successfulResults);
-            }
-        };
-
-        async function fetchWithRetry(url, payload, retries = 5, label = "AGENT") {
+        async function fetchWithBruteRetry(payload, label) {
+            let retries = 5;
             for (let i = 0; i < retries; i++) {
                 try {
-                    const response = await fetch(url, {
+                    const resp = await fetch('https://text.pollinations.ai/openai', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    
-                    if (response.ok) return await response.json();
-                    
-                    const wait = (i + 1) * 4000 + (Math.random() * 2000);
-                    writeLog(`${label} congested (Status ${response.status}). Cooling down ${Math.round(wait/1000)}s.`, "text-amber-500");
-                    await new Promise(r => setTimeout(r, wait));
+                    if (resp.ok) return await resp.json();
+                    if (resp.status === 429) {
+                        const sleep = 30000 + (i * 15000);
+                        writeLog(`${label}: 429 Limit. Cooling down for ${sleep/1000}s...`, "text-amber-500 font-bold");
+                        await new Promise(r => setTimeout(r, sleep));
+                    }
                 } catch (e) {
-                    if (i === retries - 1) throw e;
+                    await new Promise(r => setTimeout(r, 5000));
                 }
             }
             return null;
         }
 
-        async function spawnAgent(id, prompt, persona) {
+        window.deployForge = async () => {
+            if (isRunning) return;
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) return writeLog("ERROR: Input objective required.", "text-red-400");
+
+            isRunning = true;
+            mainDeployBtn.disabled = true;
+            mainDeployBtn.innerText = "CLUSTER ACTIVE...";
+            
+            fleetDisplay.innerHTML = '';
+            thoughtGrid.innerHTML = '';
+            emptyState.classList.add('hidden');
+            verdictSection.classList.add('hidden');
+            brainstormingArea.classList.add('hidden');
+
+            let unitCount = 3;
+            if (currentMode === "auto") {
+                unitCount = prompt.length < 50 ? 1 : prompt.length < 200 ? 3 : 6;
+                writeLog(`AUTO-MODE: Selected ${unitCount} units based on complexity.`, "text-blue-400");
+            } else if (currentMode === "fast") unitCount = 1;
+            else if (currentMode === "deepx") unitCount = 3;
+            else if (currentMode === "expert" || currentMode === "net43") unitCount = 6;
+
+            const activeUnits = personalities.slice(0, unitCount);
+
+            // Phase 1: Collaborative Brainstorming (NET 4.3 Only)
+            if (currentMode === "net43") {
+                brainstormingArea.classList.remove('hidden');
+                writeLog("NET 4.3: Initiating Agent Collaborative Brainstorm...", "text-blue-400 font-black");
+                
+                for (const unit of activeUnits) {
+                    const bubble = document.createElement('div');
+                    bubble.className = "thought-bubble p-4 rounded-2xl text-[10px] text-slate-400 leading-relaxed";
+                    bubble.innerHTML = `<span class="text-blue-400 font-bold uppercase block mb-1">${unit.name} THOUGHTS:</span><div id="thought-${unit.id}">Thinking...</div>`;
+                    thoughtGrid.appendChild(bubble);
+
+                    const thoughtResult = await fetchWithBruteRetry({
+                        messages: [
+                            { role: 'system', content: `You are the ${unit.name}. Analyze this project: ${prompt}. Briefly state your plan to ensure ${unit.focus}. Max 50 words.` }
+                        ],
+                        model: 'openai'
+                    }, `${unit.name}-BRAIN`);
+
+                    if (thoughtResult) {
+                        document.getElementById(`thought-${unit.id}`).innerText = thoughtResult.choices[0].message.content;
+                    }
+                    // Stagger brainstorming to avoid initial burst block
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+                writeLog("NET 4.3: Strategy locked. Proceeding to code generation.", "text-emerald-400");
+                await new Promise(r => setTimeout(r, 10000));
+            }
+
+            // Phase 2: Code Generation
+            const results = [];
+            for (let i = 0; i < activeUnits.length; i++) {
+                if (i > 0) {
+                    const delay = 30000;
+                    writeLog(`COOLDOWN: Resetting connection channel (${delay/1000}s)...`, "text-slate-600 italic");
+                    await new Promise(r => setTimeout(r, delay));
+                }
+
+                const unit = activeUnits[i];
+                writeLog(`IGNITING: Unit-${unit.id} (${unit.name})...`, "text-slate-300");
+                const res = await spawnAgent(unit, prompt);
+                if (res) results.push(res);
+            }
+
+            if (results.length > 0) {
+                writeLog("SYNC: Judging candidates for master build...", "text-amber-500");
+                await new Promise(r => setTimeout(r, 5000));
+                await runJudge(prompt, results);
+            }
+
+            isRunning = false;
+            mainDeployBtn.disabled = false;
+            mainDeployBtn.innerText = "Ignite Neural Net";
+        };
+
+        async function spawnAgent(unit, prompt) {
             const card = document.createElement('div');
-            card.id = `agent-card-${id}`;
-            card.className = 'agent-card p-6 rounded-3xl flex flex-col gap-4 relative scanning overflow-hidden';
+            card.id = `agent-card-${unit.id}`;
+            card.className = 'agent-card p-6 rounded-[2rem] flex flex-col gap-4 overflow-hidden';
             card.innerHTML = `
-                <div class="flex justify-between items-center relative z-10">
+                <div class="flex justify-between items-center">
                     <div class="flex items-center gap-3">
-                        <div id="led-${id}" class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse glow-blue"></div>
-                        <span class="text-[10px] font-black text-slate-200 uppercase tracking-widest">${persona.split(':')[0]}</span>
+                        <div id="led-${unit.id}" class="status-led led-active"></div>
+                        <span class="text-[10px] font-black text-slate-200 tracking-widest uppercase">${unit.name}</span>
                     </div>
-                    <span class="text-[8px] font-mono text-slate-500 tracking-tighter">UNIT_00${id}</span>
                 </div>
-                <div class="h-64 overflow-y-auto bg-black/40 p-4 rounded-2xl border border-slate-800/50 relative z-10 code-view">
-                    <pre id="agent-text-${id}" class="text-[11px] text-blue-400/50 italic leading-relaxed">Connecting to neural grid...</pre>
+                <div class="h-64 overflow-y-auto bg-black/50 p-5 rounded-2xl border border-slate-800/50 code-view">
+                    <pre id="agent-text-${unit.id}" class="text-[10px] text-blue-400/40 italic leading-relaxed">Processing neural buffer...</pre>
                 </div>
             `;
             fleetDisplay.appendChild(card);
 
-            const result = await fetchWithRetry(`https://text.pollinations.ai/openai`, {
+            const result = await fetchWithBruteRetry({
                 messages: [
-                    { role: 'system', content: `You are the ${persona}. TASK: Code the user request. Output ONLY raw code. No talk. No markdown backticks.` },
-                    { role: 'user', content: prompt }
+                    { role: 'system', content: `IDENTITY: ${unit.persona}. Output ONLY the complete source code for a single HTML file. No text explanation.` },
+                    { role: 'user', content: `Project: ${prompt}` }
                 ],
                 model: 'openai',
-                seed: Math.floor(Math.random() * 1000000)
-            }, 6, `UNIT-${id}`);
+                seed: Math.random() * 100000
+            }, `UNIT-${unit.id}`);
+
+            const display = document.getElementById(`agent-text-${unit.id}`);
+            const led = document.getElementById(`led-${unit.id}`);
 
             if (result) {
-                const code = cleanCode(result.choices[0].message.content);
-                const display = document.getElementById(`agent-text-${id}`);
+                const code = result.choices[0].message.content.replace(/```[a-z]*\n/gi, "").replace(/```/g, "").trim();
                 display.innerText = code;
-                display.className = "text-[11px] text-slate-300 leading-relaxed";
-                document.getElementById(`led-${id}`).classList.replace('bg-blue-500', 'bg-emerald-500');
-                document.getElementById(`led-${id}`).classList.replace('glow-blue', 'glow-emerald');
-                document.getElementById(`led-${id}`).classList.remove('animate-pulse');
-                card.classList.remove('scanning');
-                writeLog(`UNIT-${id} synthesis completed.`, "text-emerald-400");
-                return { id, code, persona };
+                display.className = "text-[10px] text-slate-300 font-mono italic";
+                led.className = "status-led bg-emerald-500";
+                writeLog(`SUCCESS: Unit-${unit.id} output captured.`, "text-emerald-400");
+                return { id: unit.id, code, name: unit.name };
             }
-            writeLog(`UNIT-${id} disconnected.`, "text-red-400");
+
+            display.innerText = "[SIGNAL TERMINATED]";
+            display.className = "text-[10px] text-red-500 font-bold";
+            led.className = "status-led bg-red-500";
             return null;
         }
 
-        async function runJudge(originalPrompt, results) {
-            writeLog("JUDGE: Evaluating cluster outputs...", "text-amber-400");
-            
-            const context = results.map(r => `[UNIT-${r.id}]\n${r.code.substring(0, 1500)}\n---`).join('\n');
-            
-            const decision = await fetchWithRetry(`https://text.pollinations.ai/openai`, {
+        async function runJudge(prompt, results) {
+            const context = results.map(r => `[UNIT-${r.id}] ${r.code.substring(0, 500)}...`).join('\n\n');
+            const judgeRes = await fetchWithBruteRetry({
                 messages: [
-                    { role: 'system', content: "You are the Supreme Evaluator. Pick the winner. Return ONLY JSON: { 'winnerId': number, 'reason': 'short explanation', 'extension': 'string' }" },
-                    { role: 'user', content: `Objective: ${originalPrompt}\n\nDrafts:\n${context}` }
+                    { role: 'system', content: "Return JSON only: { 'winnerId': number, 'reason': 'string' }" },
+                    { role: 'user', content: `Objective: ${prompt}\n\nCandidate Snippets:\n${context}` }
                 ],
                 model: 'openai',
                 jsonMode: true
-            }, 5, "JUDGE");
+            }, "JUDGE");
 
-            if (decision) {
+            if (judgeRes) {
                 try {
-                    const parsed = JSON.parse(decision.choices[0].message.content);
-                    const winner = results.find(r => r.id === parsed.winnerId) || results[0];
-                    displayWinner(winner, parsed);
-                } catch(e) {
-                    writeLog("JUDGE: Signal noise detected. Applying default selection.", "text-amber-300");
-                    displayWinner(results[0], { reason: "Optimal code structure verified via fallback analysis.", extension: "html" });
-                }
+                    const data = JSON.parse(judgeRes.choices[0].message.content);
+                    const winner = results.find(r => r.id === data.winnerId) || results[0];
+                    displayWinner(winner, data);
+                } catch(e) { displayWinner(results[0], { reason: "Standard synthesis selected." }); }
             } else {
-                writeLog("JUDGE: Offline. Auto-selecting primary cluster.", "text-red-300");
-                displayWinner(results[0], { reason: "Selected via proximity to objective.", extension: "html" });
+                displayWinner(results[0], { reason: "Automatic fallback selection." });
             }
         }
 
         function displayWinner(winner, metadata) {
             verdictSection.classList.remove('hidden');
-            document.getElementById('winningUnitLabel').innerText = `CLUSTER-00${winner.id}`;
+            document.getElementById('winningUnitLabel').innerText = `MASTER: ${winner.name} (UNIT-00${winner.id})`;
             document.getElementById('verdictText').innerText = metadata.reason;
-            
-            document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('winner-card'));
-            const winnerCard = document.getElementById(`agent-card-${winner.id}`);
-            winnerCard.classList.add('winner-card');
-            
+            document.querySelectorAll('.agent-card').forEach(c => c.style.borderColor = "rgba(71, 85, 105, 0.2)");
+            document.getElementById(`agent-card-${winner.id}`).style.borderColor = "#f59e0b";
             winningCode = winner.code;
-            winningExt = metadata.extension || "html";
-
-            writeLog(`SYNOPSIS COMPLETE: Cluster-${winner.id} confirmed as winner.`, "text-amber-400");
-            handleAutoSave(winner.id, winningCode, winningExt);
-        }
-
-        function handleAutoSave(id, content, ext) {
-            const fileName = `Forge_Build_${id}.${ext}`;
-            
-            if (document.getElementById('autoDownload').checked) {
-                const blob = new Blob([content], { type: 'text/plain' });
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = fileName;
-                a.click();
-                writeLog(`Neural Link: Exported ${fileName} to Downloads.`, "text-blue-300");
-            }
-
-            const path = document.getElementById('folderPath').value;
-            if (path) {
-                try {
-                    const stream = new ActiveXObject("ADODB.Stream");
-                    stream.Type = 2; 
-                    stream.Charset = "utf-8";
-                    stream.Open();
-                    stream.WriteText(content);
-                    stream.SaveToFile(path.replace(/[\\\/]$/, "") + "\\" + fileName, 2);
-                    stream.Close();
-                    writeLog(`Local I/O: Build synced to ${path}`, "text-emerald-300");
-                } catch(e) {
-                    writeLog(`Local I/O Error: Ensure HTA permissions.`, "text-red-500");
-                }
-            }
         }
 
         document.getElementById('downloadWinnerBtn').onclick = () => {
-            const blob = new Blob([winningCode], { type: 'text/plain' });
+            const blob = new Blob([winningCode], { type: 'text/html' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = `Forge_Final_Source.${winningExt}`;
+            a.download = `NeuralBuild.html`;
             a.click();
-        };
-
-        window._browse = async () => {
-            try {
-                const shell = new ActiveXObject("Shell.Application");
-                const folder = shell.BrowseForFolder(0, "SELECT NEURAL FORGE SYNC DIRECTORY", 0, 0);
-                if (folder) {
-                    document.getElementById('folderPath').value = folder.Items().Item().Path;
-                    writeLog(`Target Synced: ${folder.Items().Item().Path}`, "text-emerald-400");
-                }
-            } catch(e) { writeLog("ActiveX folder browsing requires Local Execution.", "text-amber-500"); }
         };
     </script>
 </body>
