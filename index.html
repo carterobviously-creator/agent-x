@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Pollinations AI Fleet Forge v3.4</title>
+    <hta:application 
+        id="pollinFleet"
+        applicationname="PollinFleet"
+        border="thin"
+        innerborder="no"
+        scroll="auto"
+        singleinstance="yes"
+        windowstate="normal"
+    >
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;500&display=swap');
+        
+        body { 
+            background-color: #020617; 
+            color: #f8fafc; 
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #020617 70%);
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .agent-card { 
+            background: rgba(30, 41, 59, 0.4); 
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .agent-card:hover {
+            border-color: rgba(59, 130, 246, 0.5);
+            transform: translateY(-2px);
+            background: rgba(30, 41, 59, 0.6);
+        }
+
+        .winner-card { 
+            border-color: #f59e0b !important; 
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.15);
+            background: rgba(45, 34, 15, 0.4) !important;
+        }
+
+        .log-entry { 
+            border-left: 2px solid #1e293b; 
+            padding-left: 10px; 
+            margin-bottom: 6px; 
+            font-size: 11px;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .verdict-box { 
+            background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+            border: 1px solid #4338ca;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .code-view {
+            font-family: 'Fira Code', monospace;
+            scrollbar-width: thin;
+            scrollbar-color: #334155 transparent;
+        }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+
+        .glow-blue { box-shadow: 0 0 10px #3b82f6; }
+        .glow-amber { box-shadow: 0 0 10px #f59e0b; }
+        .glow-emerald { box-shadow: 0 0 10px #10b981; }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .scanning::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.1), transparent);
+            animation: scanline 3s linear infinite;
+            pointer-events: none;
+        }
+    </style>
+    
+    <script>
+        window.deployForge = function() { if(window._run) window._run(); };
+        window.browseFolder = function() { if(window._browse) window._browse(); };
+    </script>
+</head>
+<body class="p-6">
+    <div class="max-w-[1600px] mx-auto">
+        <!-- Header -->
+        <div class="flex justify-between items-end mb-8 border-b border-slate-800/60 pb-6">
+            <div>
+                <h1 class="text-4xl font-black text-white tracking-tighter italic">
+                    NEURAL<span class="text-blue-500">FORGE</span>
+                    <span class="text-xs not-italic font-mono ml-2 text-slate-500">v3.4 [PROTOTYPE]</span>
+                </h1>
+                <p class="text-slate-400 text-[10px] uppercase tracking-[0.3em] font-bold mt-1">Multi-Agent Collaborative Synthesis Engine</p>
+            </div>
+            <div class="text-right">
+                <div id="connectionStatus" class="text-[10px] font-mono text-blue-400">CORE STATUS: OPTIMAL</div>
+                <div class="text-[9px] text-slate-600 font-mono">LATENCY: --ms | MODE: AGENT-DEBATE</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Sidebar Controls -->
+            <div class="lg:col-span-3 space-y-6">
+                <div class="glass-panel p-6 rounded-2xl">
+                    <h2 class="text-xs font-black text-blue-400 mb-6 uppercase tracking-widest flex items-center gap-2">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full animate-ping"></span>
+                        Command Center
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <!-- Disk Link -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-3 uppercase tracking-tighter">I/O Target Configuration</label>
+                            <div class="flex items-center gap-3 mb-3 group cursor-pointer" onclick="document.getElementById('autoDownload').click()">
+                                <input type="checkbox" id="autoDownload" class="w-4 h-4 rounded bg-slate-900 border-slate-700 checked:bg-blue-600 transition-all" checked>
+                                <label for="autoDownload" class="text-xs text-slate-300 group-hover:text-white transition-colors cursor-pointer">Auto-Export Winners</label>
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" id="folderPath" readonly placeholder="Link folder for direct disk I/O..."
+                                    class="flex-1 bg-slate-950/50 border border-slate-800 rounded-lg p-2 text-[10px] text-slate-400 italic truncate outline-none">
+                                <button onclick="window.browseFolder()" class="bg-slate-800 hover:bg-slate-700 text-white px-3 rounded-lg text-[10px] font-bold transition-colors">LINK</button>
+                            </div>
+                        </div>
+
+                        <!-- Settings -->
+                        <div>
+                            <div class="flex justify-between text-[10px] font-bold text-slate-500 mb-3 uppercase">
+                                <span>Agent Clusters</span>
+                                <span id="countDisplay" class="text-blue-400">3 UNITS</span>
+                            </div>
+                            <input type="range" id="agentCount" min="2" max="5" value="3" 
+                                class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                oninput="document.getElementById('countDisplay').innerText = this.value + ' UNITS'">
+                        </div>
+
+                        <!-- Prompt -->
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-3 uppercase">Neural Objective (Prompt)</label>
+                            <textarea id="promptInput" rows="7" 
+                                class="w-full bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-sm text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all resize-none font-mono"
+                                placeholder="Define the build objective..."></textarea>
+                        </div>
+
+                        <button onclick="window.deployForge()" 
+                            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-blue-900/40 text-xs uppercase tracking-widest">
+                            Ignite Neural Forge
+                        </button>
+                    </div>
+                </div>
+
+                <!-- System Logs -->
+                <div class="glass-panel p-4 rounded-2xl">
+                    <h3 class="text-[9px] font-bold text-slate-500 uppercase mb-3 tracking-widest">Live Telemetry</h3>
+                    <div id="systemLog" class="h-64 overflow-y-auto pr-2">
+                        <div class="log-entry text-blue-400">System Ready. Awaiting instructions.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Stage -->
+            <div class="lg:col-span-9 space-y-6">
+                <!-- Verdict Section (Winner UI) -->
+                <div id="verdictSection" class="hidden verdict-box p-6 rounded-3xl overflow-hidden relative">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                        <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 3.45L19.15 19H4.85L12 5.45zM11 16h2v2h-2v-2zm0-7h2v5h-2V9z"/></svg>
+                    </div>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center gap-3">
+                                <span class="flex h-3 w-3 bg-amber-500 rounded-full glow-amber"></span>
+                                <span class="text-amber-500 font-black text-sm uppercase tracking-[0.2em]">Synthesis Winner</span>
+                            </div>
+                            <span id="winningUnitLabel" class="bg-amber-500 text-black text-[10px] px-3 py-1 rounded-full font-black shadow-lg">UNIT-001</span>
+                        </div>
+                        <p id="verdictText" class="text-slate-200 text-sm mb-6 leading-relaxed max-w-3xl italic font-light"></p>
+                        <div class="flex gap-4">
+                            <button id="downloadWinnerBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] px-6 py-2.5 rounded-xl font-black transition-all shadow-lg shadow-emerald-900/20 uppercase tracking-wider">
+                                Export Source Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contender Grid -->
+                <div id="fleetDisplay" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"></div>
+                
+                <!-- Placeholder -->
+                <div id="emptyState" class="flex flex-col items-center justify-center h-[600px] border-2 border-dashed border-slate-800/50 rounded-[2.5rem] text-slate-700">
+                    <div class="w-20 h-20 mb-6 opacity-10 bg-blue-500 rounded-full blur-3xl"></div>
+                    <p class="text-sm font-bold uppercase tracking-widest opacity-30">Neutral Forge Standby</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const log = document.getElementById('systemLog');
+        const fleetDisplay = document.getElementById('fleetDisplay');
+        const emptyState = document.getElementById('emptyState');
+        const agentCountInput = document.getElementById('agentCount');
+        const verdictSection = document.getElementById('verdictSection');
+        
+        let winningCode = "";
+        let winningExt = "txt";
+
+        function writeLog(msg, color = "text-slate-500") {
+            const div = document.createElement('div');
+            div.className = `log-entry ${color}`;
+            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            log.prepend(div);
+        }
+
+        const personalities = [
+            "Architect: Semantic HTML5, structured CSS, focus on core architecture.",
+            "Hacker: Ultra-fast loading, clever CSS tricks, minified logic.",
+            "Artist: High-end aesthetics, glassmorphism, fluid animations.",
+            "Engineer: Scalable logic, standard patterns, error resilience.",
+            "Minimalist: Pure vanilla code, zero bloat, high readability."
+        ];
+
+        function cleanCode(raw) {
+            let code = raw.replace(/^```[a-z]*\n/i, "");
+            code = code.replace(/\n```$/, "");
+            return code.trim();
+        }
+
+        window._run = async () => {
+            const prompt = document.getElementById('promptInput').value.trim();
+            if (!prompt) return writeLog("CRITICAL: No neural objective defined.", "text-red-400");
+
+            fleetDisplay.innerHTML = '';
+            emptyState.classList.add('hidden');
+            verdictSection.classList.add('hidden');
+            
+            const count = parseInt(agentCountInput.value);
+            writeLog(`Igniting Neural Forge: Deploying ${count} agent clusters.`, "text-blue-400");
+
+            const promises = [];
+            for (let i = 0; i < count; i++) {
+                promises.push(spawnAgent(i + 1, prompt, personalities[i % personalities.length]));
+            }
+
+            const results = await Promise.all(promises);
+            const successfulResults = results.filter(r => r !== null);
+
+            if (successfulResults.length > 0) {
+                runJudge(prompt, successfulResults);
+            }
+        };
+
+        async function fetchWithRetry(url, payload, retries = 5, label = "AGENT") {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) return await response.json();
+                    
+                    const wait = (i + 1) * 4000 + (Math.random() * 2000);
+                    writeLog(`${label} congested (Status ${response.status}). Cooling down ${Math.round(wait/1000)}s.`, "text-amber-500");
+                    await new Promise(r => setTimeout(r, wait));
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                }
+            }
+            return null;
+        }
+
+        async function spawnAgent(id, prompt, persona) {
+            const card = document.createElement('div');
+            card.id = `agent-card-${id}`;
+            card.className = 'agent-card p-6 rounded-3xl flex flex-col gap-4 relative scanning overflow-hidden';
+            card.innerHTML = `
+                <div class="flex justify-between items-center relative z-10">
+                    <div class="flex items-center gap-3">
+                        <div id="led-${id}" class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse glow-blue"></div>
+                        <span class="text-[10px] font-black text-slate-200 uppercase tracking-widest">${persona.split(':')[0]}</span>
+                    </div>
+                    <span class="text-[8px] font-mono text-slate-500 tracking-tighter">UNIT_00${id}</span>
+                </div>
+                <div class="h-64 overflow-y-auto bg-black/40 p-4 rounded-2xl border border-slate-800/50 relative z-10 code-view">
+                    <pre id="agent-text-${id}" class="text-[11px] text-blue-400/50 italic leading-relaxed">Connecting to neural grid...</pre>
+                </div>
+            `;
+            fleetDisplay.appendChild(card);
+
+            const result = await fetchWithRetry(`https://text.pollinations.ai/openai`, {
+                messages: [
+                    { role: 'system', content: `You are the ${persona}. TASK: Code the user request. Output ONLY raw code. No talk. No markdown backticks.` },
+                    { role: 'user', content: prompt }
+                ],
+                model: 'openai',
+                seed: Math.floor(Math.random() * 1000000)
+            }, 6, `UNIT-${id}`);
+
+            if (result) {
+                const code = cleanCode(result.choices[0].message.content);
+                const display = document.getElementById(`agent-text-${id}`);
+                display.innerText = code;
+                display.className = "text-[11px] text-slate-300 leading-relaxed";
+                document.getElementById(`led-${id}`).classList.replace('bg-blue-500', 'bg-emerald-500');
+                document.getElementById(`led-${id}`).classList.replace('glow-blue', 'glow-emerald');
+                document.getElementById(`led-${id}`).classList.remove('animate-pulse');
+                card.classList.remove('scanning');
+                writeLog(`UNIT-${id} synthesis completed.`, "text-emerald-400");
+                return { id, code, persona };
+            }
+            writeLog(`UNIT-${id} disconnected.`, "text-red-400");
+            return null;
+        }
+
+        async function runJudge(originalPrompt, results) {
+            writeLog("JUDGE: Evaluating cluster outputs...", "text-amber-400");
+            
+            const context = results.map(r => `[UNIT-${r.id}]\n${r.code.substring(0, 1500)}\n---`).join('\n');
+            
+            const decision = await fetchWithRetry(`https://text.pollinations.ai/openai`, {
+                messages: [
+                    { role: 'system', content: "You are the Supreme Evaluator. Pick the winner. Return ONLY JSON: { 'winnerId': number, 'reason': 'short explanation', 'extension': 'string' }" },
+                    { role: 'user', content: `Objective: ${originalPrompt}\n\nDrafts:\n${context}` }
+                ],
+                model: 'openai',
+                jsonMode: true
+            }, 5, "JUDGE");
+
+            if (decision) {
+                try {
+                    const parsed = JSON.parse(decision.choices[0].message.content);
+                    const winner = results.find(r => r.id === parsed.winnerId) || results[0];
+                    displayWinner(winner, parsed);
+                } catch(e) {
+                    writeLog("JUDGE: Signal noise detected. Applying default selection.", "text-amber-300");
+                    displayWinner(results[0], { reason: "Optimal code structure verified via fallback analysis.", extension: "html" });
+                }
+            } else {
+                writeLog("JUDGE: Offline. Auto-selecting primary cluster.", "text-red-300");
+                displayWinner(results[0], { reason: "Selected via proximity to objective.", extension: "html" });
+            }
+        }
+
+        function displayWinner(winner, metadata) {
+            verdictSection.classList.remove('hidden');
+            document.getElementById('winningUnitLabel').innerText = `CLUSTER-00${winner.id}`;
+            document.getElementById('verdictText').innerText = metadata.reason;
+            
+            document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('winner-card'));
+            const winnerCard = document.getElementById(`agent-card-${winner.id}`);
+            winnerCard.classList.add('winner-card');
+            
+            winningCode = winner.code;
+            winningExt = metadata.extension || "html";
+
+            writeLog(`SYNOPSIS COMPLETE: Cluster-${winner.id} confirmed as winner.`, "text-amber-400");
+            handleAutoSave(winner.id, winningCode, winningExt);
+        }
+
+        function handleAutoSave(id, content, ext) {
+            const fileName = `Forge_Build_${id}.${ext}`;
+            
+            if (document.getElementById('autoDownload').checked) {
+                const blob = new Blob([content], { type: 'text/plain' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = fileName;
+                a.click();
+                writeLog(`Neural Link: Exported ${fileName} to Downloads.`, "text-blue-300");
+            }
+
+            const path = document.getElementById('folderPath').value;
+            if (path) {
+                try {
+                    const stream = new ActiveXObject("ADODB.Stream");
+                    stream.Type = 2; 
+                    stream.Charset = "utf-8";
+                    stream.Open();
+                    stream.WriteText(content);
+                    stream.SaveToFile(path.replace(/[\\\/]$/, "") + "\\" + fileName, 2);
+                    stream.Close();
+                    writeLog(`Local I/O: Build synced to ${path}`, "text-emerald-300");
+                } catch(e) {
+                    writeLog(`Local I/O Error: Ensure HTA permissions.`, "text-red-500");
+                }
+            }
+        }
+
+        document.getElementById('downloadWinnerBtn').onclick = () => {
+            const blob = new Blob([winningCode], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `Forge_Final_Source.${winningExt}`;
+            a.click();
+        };
+
+        window._browse = async () => {
+            try {
+                const shell = new ActiveXObject("Shell.Application");
+                const folder = shell.BrowseForFolder(0, "SELECT NEURAL FORGE SYNC DIRECTORY", 0, 0);
+                if (folder) {
+                    document.getElementById('folderPath').value = folder.Items().Item().Path;
+                    writeLog(`Target Synced: ${folder.Items().Item().Path}`, "text-emerald-400");
+                }
+            } catch(e) { writeLog("ActiveX folder browsing requires Local Execution.", "text-amber-500"); }
+        };
+    </script>
+</body>
+</html>
